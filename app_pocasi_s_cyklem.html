@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Page Title</title>
+	<meta charset="UTF-8">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
+   integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+   crossorigin=""/>
+	<script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
+   integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
+   crossorigin=""></script>
+   <script src="okresy.js"></script>
+   <link rel="stylesheet" type="text/css" href="pocasi.css">
+	
+</head>
+<body>
+
+ <div id="mapid"></div>
+<b>Předpověď počasí pro:</b><br><br>
+<div id="zdar" class="mestecka"> Žďár nad Sázavou </div><br>
+<div id="beroun" class="mestecka"> Beroun </div><br>
+<div id="praha" class="mestecka"> Praha </div><br>
+<div id="last"></div>
+
+	
+
+<script>
+//vložení dat - leaflet
+var mymap = L.map('mapid').setView([49.70, 15.50], 7);
+L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+    attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+    maxZoom: 7,
+    minZoom: 7,
+    id: 'mapbox.dark',
+    accessToken: 'pk.eyJ1IjoibXVzbGVkIiwiYSI6ImNqczRrcHE1ODA1a2s0OW1zaGp6OWN3bjgifQ.yy7IJJJUbmp5pAofgFLNnA'
+}).addTo(mymap);
+
+// zablokování posunu mapového podkladu
+mymap.dragging.disable();
+
+//funkce na převod stupňů z API openwaether do textové podoby
+function toTextualDescription(degree) {
+	var sectors = ['severně','severovýchodně','východně','jihovýchodně','jižně','jihozápadně','západně','severozápadně'];
+	degree += 22.5;
+	if (degree < 0) {
+		degree = 360 - Math.abs(degree) % 360;
+	}
+	else {
+		degree = degree % 360;
+	}
+	var which = parseInt(degree / 45);
+	return sectors[which];
+};
+
+//sekce stahování JSON dat z API openweather
+$(document).ready(function () {
+	
+	$.getJSON( "https://api.openweathermap.org/data/2.5/group?id=3079467,3061694,3067695&units=metric&lang=cz&appid=e227566f96729579b8b22a02099e5c4b", function( data ) {
+  	console.log(data.list);
+	for (var i = 0; i < data.list.length; i++) {
+    	if (data.list[i].name == "Okres Žďár nad Sázavou") {
+	    	var myIcon = L.divIcon({
+			    className: 'my-div-icon',
+			    iconSize: null,
+			    html: "<b> Žďár n. Sázavou </b>",
+		    });
+		  }	
+	    else {
+	    	var myIcon = L.divIcon({
+			    className: 'my-div-icon',
+			    iconSize: [90, 15],
+			    html: "<b>" + data.list[i].name + "</b>",
+		    });	
+	    };
+    	var marker = L.marker([data.list[i].coord.lat, data.list[i].coord.lon], {icon:myIcon}).addTo(mymap);
+    	var popup = L.popup({
+    		className: "popupCustom",
+    	});
+    	popup.setContent("<b>" + data.list[i].name +"</b><br> Teplota: "+ data.list[i].main.temp +"<br>" + "Tlak: " + data.list[i].main.pressure + "<br> Vlhkost: " + data.list[i].main.humidity + " % <br> Nebe: " + data.list[i].weather[0].description + "<br> Rychlost větru: " + data.list[i].wind.speed + " " + toTextualDescription(data.list[i].wind.deg))
+    	marker.bindPopup(popup);
+  }});
+	
+	var objektJson = {zdar: ["https://api.openweathermap.org/data/2.5/forecast?id=3061694&units=metric&lang=cz&appid=e227566f96729579b8b22a02099e5c4b", "zdarTab", "zdar"], beroun: ["https://api.openweathermap.org/data/2.5/forecast?id=3079467&units=metric&lang=cz&appid=e227566f96729579b8b22a02099e5c4b", "berounTab", "beroun"], praha: ["https://api.openweathermap.org/data/2.5/forecast?id=3067695&units=metric&lang=cz&appid=e227566f96729579b8b22a02099e5c4b", "prahaTab", "praha"]}
+
+	//předpověď - nutné předělat do jednoho kódu s for cyklem apod.
+	
+	for (const key in objektJson) {
+	$.getJSON( objektJson[key][0], function( data ) {
+  			var tabulka = document.createElement("table");
+  			tabulka.id = objektJson[key][1];
+  			tabulka.innerHTML = "<tr><th> Datum a čas </th><th>Max teplota</th><th>Min teplota</th><th>Tlak</th><th>Vlhkost</th><th>Počasí obecně</th><th>Rychlost větru</th><th>Směr větru</th></tr>";
+  			for (var i = 0; i < data.list.length; i++) {
+  				var radek = document.createElement("tr");
+  				radek.innerHTML = "<td>" + data.list[i].dt_txt + "</td><td>" + data.list[i].main.temp_max + "</td><td>" + data.list[i].main.temp_min + "</td><td>" + data.list[i].main.pressure + "</td><td>" + data.list[i].main.humidity + "</td><td>" + data.list[i].weather[0].description + "</td><td>" + data.list[i].wind.speed + "</td><td>" + toTextualDescription(data.list[i].wind.deg) +"</td>";
+  				tabulka.appendChild(radek);
+  			};
+  			var mesto = document.getElementById(objektJson[key][2]);
+  			//document.body.insertBefore(tabulka, mesto);
+  			$(tabulka).insertAfter(mesto);
+  			$("#"+objektJson[key][1]).hide();
+  		});
+};
+
+// 1. uložení aspoň dat z api do window'přes session?, 2. uložení mapy nebo jak to optimalizovat, 3. vyhodit style do souboru
+	$("#zdar").click(function() {
+		$("#zdarTab").toggle();
+		$("#berounTab").hide();
+		$("#prahaTab").hide();
+	});
+	$("#beroun").click(function() {
+		$("#berounTab").toggle();
+		$("#zdarTab").hide();
+		$("#prahaTab").hide();
+	});
+	$("#praha").click(function() {
+		$("#prahaTab").toggle();
+		$("#berounTab").hide();
+		$("#zdarTab").hide();
+	});
+	
+});
+</script>
+</body>
+</html>

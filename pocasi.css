@@ -1,0 +1,49 @@
+		#mapid { height: 400px;
+				 width: 650px;	
+		 }
+
+		#obr { height: 250px;
+				 width: 250px;	
+		 	
+		 }
+
+		.info {
+			    padding: 6px 8px;
+			    font: 14px/16px Arial, Helvetica, sans-serif;
+			    background: white;
+			    background: rgba(255,255,255,0.8);
+			    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+			    border-radius: 5px;
+			    width: 200px;
+			}
+
+		.my-div-icon {
+			background: yellow;
+			font: 12px Arial, Helvetica, sans-serif;
+		}
+
+		.popupCustom .leaflet-popup-tip,
+		.popupCustom .leaflet-popup-content-wrapper {
+	    background: yellow;
+	    font: 12px Arial, Helvetica, sans-serif;
+
+		}
+
+		table {
+	  	border-collapse: collapse;
+	  	text-align: center;
+		}
+
+		table, th, td {
+  		border: 1px solid black;
+		}
+
+		.mestecka {
+			width: 200px;
+		}
+
+		.mestecka:hover {
+		background-color: black;
+		color: yellow;
+		text-decoration: underline;
+		}
