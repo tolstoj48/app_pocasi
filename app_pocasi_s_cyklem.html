@@ -10,7 +10,6 @@
 	<script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
    integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
    crossorigin=""></script>
-   <script src="okresy.js"></script>
    <link rel="stylesheet" type="text/css" href="pocasi.css">
 	
 </head>
@@ -23,9 +22,8 @@
 <div id="praha" class="mestecka"> Praha </div><br>
 <div id="last"></div>
 
-	
-
 <script>
+
 //vložení dat - leaflet
 var mymap = L.map('mapid').setView([49.70, 15.50], 7);
 L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
@@ -39,7 +37,7 @@ L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={
 // zablokování posunu mapového podkladu
 mymap.dragging.disable();
 
-//funkce na převod stupňů z API openwaether do textové podoby
+//funkce na převod stupňů z API openweather do textové podoby
 function toTextualDescription(degree) {
 	var sectors = ['severně','severovýchodně','východně','jihovýchodně','jižně','jihozápadně','západně','severozápadně'];
 	degree += 22.5;
@@ -55,9 +53,7 @@ function toTextualDescription(degree) {
 
 //sekce stahování JSON dat z API openweather
 $(document).ready(function () {
-	
 	$.getJSON( "https://api.openweathermap.org/data/2.5/group?id=3079467,3061694,3067695&units=metric&lang=cz&appid=e227566f96729579b8b22a02099e5c4b", function( data ) {
-  	console.log(data.list);
 	for (var i = 0; i < data.list.length; i++) {
     	if (data.list[i].name == "Okres Žďár nad Sázavou") {
 	    	var myIcon = L.divIcon({
@@ -73,6 +69,7 @@ $(document).ready(function () {
 			    html: "<b>" + data.list[i].name + "</b>",
 		    });	
 	    };
+
     	var marker = L.marker([data.list[i].coord.lat, data.list[i].coord.lon], {icon:myIcon}).addTo(mymap);
     	var popup = L.popup({
     		className: "popupCustom",
@@ -81,28 +78,64 @@ $(document).ready(function () {
     	marker.bindPopup(popup);
   }});
 	
-	var objektJson = {zdar: ["https://api.openweathermap.org/data/2.5/forecast?id=3061694&units=metric&lang=cz&appid=e227566f96729579b8b22a02099e5c4b", "zdarTab", "zdar"], beroun: ["https://api.openweathermap.org/data/2.5/forecast?id=3079467&units=metric&lang=cz&appid=e227566f96729579b8b22a02099e5c4b", "berounTab", "beroun"], praha: ["https://api.openweathermap.org/data/2.5/forecast?id=3067695&units=metric&lang=cz&appid=e227566f96729579b8b22a02099e5c4b", "prahaTab", "praha"]}
+	var objektJson = {zdar: ["https://api.openweathermap.org/data/2.5/forecast?id=3061694&units=metric&lang=cz&appid=e227566f96729579b8b22a02099e5c4b", "zdarTab", "zdar"], beroun: ["https://api.openweathermap.org/data/2.5/forecast?id=3079467&units=metric&lang=cz&appid=e227566f96729579b8b22a02099e5c4b", "berounTab", "beroun"], praha: ["https://api.openweathermap.org/data/2.5/forecast?id=3067695&units=metric&lang=cz&appid=e227566f96729579b8b22a02099e5c4b", "prahaTab", "praha"]};
 
-	//předpověď - nutné předělat do jednoho kódu s for cyklem apod.
-	
-	for (const key in objektJson) {
-	$.getJSON( objektJson[key][0], function( data ) {
-  			var tabulka = document.createElement("table");
-  			tabulka.id = objektJson[key][1];
-  			tabulka.innerHTML = "<tr><th> Datum a čas </th><th>Max teplota</th><th>Min teplota</th><th>Tlak</th><th>Vlhkost</th><th>Počasí obecně</th><th>Rychlost větru</th><th>Směr větru</th></tr>";
-  			for (var i = 0; i < data.list.length; i++) {
-  				var radek = document.createElement("tr");
-  				radek.innerHTML = "<td>" + data.list[i].dt_txt + "</td><td>" + data.list[i].main.temp_max + "</td><td>" + data.list[i].main.temp_min + "</td><td>" + data.list[i].main.pressure + "</td><td>" + data.list[i].main.humidity + "</td><td>" + data.list[i].weather[0].description + "</td><td>" + data.list[i].wind.speed + "</td><td>" + toTextualDescription(data.list[i].wind.deg) +"</td>";
-  				tabulka.appendChild(radek);
-  			};
-  			var mesto = document.getElementById(objektJson[key][2]);
-  			//document.body.insertBefore(tabulka, mesto);
-  			$(tabulka).insertAfter(mesto);
-  			$("#"+objektJson[key][1]).hide();
-  		});
-};
+//funkce stáhnutí dat předpovědi z API
+	function generPredpovedi () {
+		var x = new Date();
+		var casProExpiraci = x.getTime();
+		sessionStorage.setItem("casPocatekExpirace", casProExpiraci);
+		for (const key in objektJson) {
+			$.getJSON( objektJson[key][0], function( data ) {
+		  			sessionStorage.setItem(key,JSON.stringify(data));
+		  			console.log("Data k předpovědi stažena z API a uložena do session!");
+		  			var tabulka = document.createElement("table");
+		  			tabulka.id = objektJson[key][1];
+		  			tabulka.innerHTML = "<tr><th> Datum a čas </th><th>Max teplota</th><th>Min teplota</th><th>Tlak</th><th>Vlhkost</th><th>Počasí obecně</th><th>Rychlost větru</th><th>Směr větru</th></tr>";
+		  			for (var i = 0; i < data.list.length; i++) {
+		  				var radek = document.createElement("tr");
+		  				radek.innerHTML = "<td>" + data.list[i].dt_txt + "</td><td>" + data.list[i].main.temp_max + "</td><td>" + data.list[i].main.temp_min + "</td><td>" + data.list[i].main.pressure + "</td><td>" + data.list[i].main.humidity + "</td><td>" + data.list[i].weather[0].description + "</td><td>" + data.list[i].wind.speed + "</td><td>" + toTextualDescription(data.list[i].wind.deg) +"</td>";
+		  				tabulka.appendChild(radek);
+		  			};
+		  			var mesto = document.getElementById(objektJson[key][2]);
+		  			//document.body.insertBefore(tabulka, mesto);
+		  			$(tabulka).insertAfter(mesto);
+		  			$("#"+objektJson[key][1]).hide();
+		  		});
+		};
+	};
 
-// 1. uložení aspoň dat z api do window'přes session?, 2. uložení mapy nebo jak to optimalizovat, 3. vyhodit style do souboru
+//dostupnost dat ze session
+	if (sessionStorage.getItem("casPocatekExpirace")) {
+		var aktualniDatum = new Date();
+		var aktualniCas = aktualniDatum.getTime();
+		var pocatecniCas = sessionStorage.getItem("casPocatekExpirace");
+		if (aktualniCas - pocatecniCas > 600000) {
+			generPredpovedi();
+		} else {
+			for (const key in objektJson) {
+				data = JSON.parse(sessionStorage.getItem(key));
+		  			console.log("Data k předpovědi ze session!");
+		  			var tabulka = document.createElement("table");
+		  			tabulka.id = objektJson[key][1];
+		  			tabulka.innerHTML = "<tr><th> Datum a čas </th><th>Max teplota</th><th>Min teplota</th><th>Tlak</th><th>Vlhkost</th><th>Počasí obecně</th><th>Rychlost větru</th><th>Směr větru</th></tr>";
+		  			for (var i = 0; i < data.list.length; i++) {
+		  				var radek = document.createElement("tr");
+		  				radek.innerHTML = "<td>" + data.list[i].dt_txt + "</td><td>" + data.list[i].main.temp_max + "</td><td>" + data.list[i].main.temp_min + "</td><td>" + data.list[i].main.pressure + "</td><td>" + data.list[i].main.humidity + "</td><td>" + data.list[i].weather[0].description + "</td><td>" + data.list[i].wind.speed + "</td><td>" + toTextualDescription(data.list[i].wind.deg) +"</td>";
+		  				tabulka.appendChild(radek);
+		  			};
+		  			var mesto = document.getElementById(objektJson[key][2]);
+		  			//document.body.insertBefore(tabulka, mesto);
+		  			$(tabulka).insertAfter(mesto);
+		  			$("#"+objektJson[key][1]).hide();
+		  		};
+		};
+	} 
+	else {
+		generPredpovedi();
+	};
+
+//jquery events na klikání předpovědi
 	$("#zdar").click(function() {
 		$("#zdarTab").toggle();
 		$("#berounTab").hide();
